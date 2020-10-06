@@ -149,7 +149,7 @@ big_integer big_integer::operator--(int) {
 big_integer operator+(big_integer const &a, big_integer const &b) {
     bool minus = a.sign ^b.sign;
     int first = 1, second = 1;
-    bool more;
+    bool more = false;
     if (minus) {
         more = abs(a) >= abs(b);
         first = more ? 1 : -1;

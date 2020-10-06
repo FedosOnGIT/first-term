@@ -9,7 +9,7 @@
 template<typename T>
 struct small_object_vector {
 
-    small_object_vector() : size(0), will_grow(true) {}
+    small_object_vector() : will_grow(true), size(0) {}
 
     small_object_vector(small_object_vector<T> const& other) {
         size = other.size;
@@ -119,7 +119,7 @@ struct small_object_vector {
 
     void reverse() {
         if (will_grow) {
-            T copy[size];
+            T copy[MAX];
             for (size_t i = 0; i < size; i++) {
                 new (copy + size - i - 1)T(small[i]);
             }
