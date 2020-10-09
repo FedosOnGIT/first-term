@@ -137,7 +137,7 @@ private:
     }
 
     void normalise() {
-        size = bits.capacity();
+        size = bits.say_size();
         while (!bits.empty()) {
             if (bits[size - 1] == 0) {
                 bits.pop_back();
@@ -186,7 +186,7 @@ private:
     }
 
     void allocate(size_t new_size) {
-        bits.allocate(new_size, 0);
+        bits = small_object_vector<uint32_t>(new_size, 0);
         size = new_size;
         sign = false;
     }
