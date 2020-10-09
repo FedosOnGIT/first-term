@@ -145,6 +145,10 @@ private:
         }
     }
 
+    friend uint32_t return_value(big_integer const &a, size_t index) {
+        return a.size > index ? a[index] : 0;
+    }
+
     void push_back(uint32_t element) {
         if (!size) {
             bits[0] = element;
@@ -190,7 +194,6 @@ private:
     size_t size;
 
     bool sign;
-
 };
 
 
