@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <cassert>
+using std::swap;
 
 template<typename T>
 struct vector {
@@ -239,9 +240,9 @@ private:
 template<typename T>
 // O(1) nothrow
 void swap(vector<T> &first, vector<T> &second) {
-    std::swap(first.data_, second.data_);
-    std::swap(first.size_, second.size_);
-    std::swap(first.capacity_, second.capacity_);
+    swap(first.data_, second.data_);
+    swap(first.size_, second.size_);
+    swap(first.capacity_, second.capacity_);
 }
 
 #endif // VECTOR_H
