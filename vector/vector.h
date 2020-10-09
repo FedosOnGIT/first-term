@@ -4,11 +4,12 @@
 #include <iostream>
 #include <memory>
 #include <algorithm>
+#include <cassert>
 
 template<typename T>
 struct vector {
-    typedef T *iterator;
-    typedef T const *const_iterator;
+    using iterator = T*;
+    using const_iterator = T const*;
 
     // O(1) nothrow
     vector() : data_(nullptr), size_(0), capacity_(0) {}
@@ -81,7 +82,7 @@ struct vector {
     void push_back(T const &input) {
         if (size_ == capacity_) {
             T link = input;
-            make_buffer(increase_capacity());
+            make_buffer(increase_capacity_value());
             new(data_ + size_)T(link);
             size_++;
         } else {
@@ -115,10 +116,9 @@ struct vector {
 
     // O(N) strong
     void shrink_to_fit() {
-        if (size_ == 0) {
+        if (capacity_ != size_) {
             make_buffer(size_);
         }
-        capacity_ = size_;
     }
 
     // O(N) nothrow
@@ -150,9 +150,9 @@ struct vector {
 
     // O(N) weak
     iterator insert(const_iterator pos, T const &input) {
-        size_t position = pos - data_;
+        ptrdiff_t position = pos - data_;
         push_back(input);
-        for (size_t i = size_ - 1; i > position; i--) {
+        for (ptrdiff_t i = size_ - 1; i > position; i--) {
             std::swap(data_[i], data_[i - 1]);
         }
         return data_ + position;
@@ -160,31 +160,25 @@ struct vector {
 
     // O(N) weak
     iterator erase(const_iterator pos) {
-        size_t position = pos - data_;
-        for (size_t i = position; i < size_ - 1; i++) {
-            std::swap(data_[i], data_[i + 1]);
+        ptrdiff_t position = pos - data_;
+        for (ptrdiff_t i = position; i < size_ - 1; i++) {
+            std::swap(data_[position], data_[position + 1]);
+            position++;
         }
-        data_[size_ - 1].~T();
-        size_--;
+        pop_back();
         return data_ + position;
     }
 
 
     // O(N) weak
     iterator erase(const_iterator first, const_iterator last) {
-        size_t begin = first - data_;
-        size_t end = last - data_;
-        size_t new_size = size_ - (end - begin);
-        T* new_data = static_cast<T *>(operator new(new_size * sizeof(T)));
-        for (size_t i = 0; i < begin; i++) {
-            new(new_data + i)T(data_[i]);
+        ptrdiff_t begin = first - data_;
+        ptrdiff_t end = last - data_;
+        ptrdiff_t new_size = size_ - (end - begin);
+        for (ptrdiff_t i = begin; i + end - begin < size_; i++) {
+            std::swap(data_[i], data_[i + end - begin]);
         }
-        for (size_t i = end; i < size_; i++) {
-            new(new_data + i - (end - begin))T(data_[i]);
-        }
-        clear();
-        operator delete(data_);
-        data_ = new_data;
+        real_clear(new_size, size_);
         capacity_ = size_ = new_size;
         return data_ + begin;
     }
@@ -199,16 +193,17 @@ private:
         }
     }
 
-    size_t increase_capacity() const {
+    size_t increase_capacity_value() const {
         return capacity_ * 2 + 1;
     }
 
-    static T *increase_buffer(T *data, size_t new_size, size_t old_size) {
+    static T *increase_buffer(T *data, size_t new_capacity, size_t old_size) {
+        assert(new_capacity >= old_size);
         T *new_data;
-        if (new_size == 0) {
+        if (new_capacity == 0) {
             new_data = nullptr;
         } else {
-            new_data = static_cast<T *>(operator new(new_size * sizeof(T)));
+            new_data = static_cast<T *>(operator new(new_capacity * sizeof(T)));
             size_t position = 0;
             try {
                 for (size_t i = 0; i < old_size; i++) {
@@ -216,8 +211,9 @@ private:
                     position++;
                 }
             } catch (...) {
-                for (size_t i = position; i > 0; i--) {
-                    new_data[i - 1].~T();
+                while (position > 0) {
+                    new_data[position - 1].~T();
+                    position--;
                 }
                 operator delete(new_data);
                 throw;
@@ -230,7 +226,7 @@ private:
         T *new_data = increase_buffer(data_, new_capacity, size_);
         real_clear(0, size_);
         operator delete(data_);
-        data_ = new_data;
+        std::swap(data_, new_data);
         capacity_ = new_capacity;
     }
 
@@ -247,6 +243,5 @@ void swap(vector<T> &first, vector<T> &second) {
     std::swap(first.size_, second.size_);
     std::swap(first.capacity_, second.capacity_);
 }
-
 
 #endif // VECTOR_H
