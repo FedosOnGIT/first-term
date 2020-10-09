@@ -18,6 +18,10 @@ struct copy_vector {
         memory = new buffer<T>(change);
     }
 
+    copy_vector(T* begin, T* end) {
+        memory = new buffer<T>(begin, end);
+    }
+
     copy_vector(copy_vector<T> const& change) : memory(change.memory) {
         memory->counter++;
     }
