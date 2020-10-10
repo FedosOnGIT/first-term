@@ -22,8 +22,12 @@ struct copy_vector {
         memory = new buffer<T>(begin, end);
     }
 
-    copy_vector(copy_vector<T> const& change) : memory(change.memory) {
+    copy_vector(copy_vector<T> const& change) noexcept : memory(change.memory) {
         memory->counter++;
+    }
+
+    copy_vector(size_t length, const T& element) {
+        memory = new buffer<T>(length, element);
     }
 
     ~copy_vector() {

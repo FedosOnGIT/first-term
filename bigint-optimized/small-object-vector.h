@@ -2,7 +2,6 @@
 // Created by fedos on 09.07.2020.
 //
 #include "copy-vector.h"
-using std::swap;
 
 #ifndef BIGINT_SMALL_OBJECT_VECTOR_H
 #define BIGINT_SMALL_OBJECT_VECTOR_H
@@ -31,8 +30,7 @@ struct small_object_vector {
             }
         } else {
             will_grow = false;
-            std::vector<T> main(length, element);
-            new (&big)copy_vector<T>(main);
+            new (&big)copy_vector<T>(length, element);
         }
     }
 
@@ -107,7 +105,7 @@ struct small_object_vector {
         }
     }
 
-    size_t say_size() {
+    size_t get_size() {
         return size;
     }
 
@@ -117,10 +115,7 @@ struct small_object_vector {
 
     void reverse() {
         if (will_grow) {
-            for (size_t i = 0; i < size / 2; i++) {
-                std::swap(small[i],small[size - i - 1]);
-            }
-            clear_small(size);
+            std::reverse(small, small + size);
         } else {
             big.reverse();
         }
@@ -135,13 +130,16 @@ private:
 
     void convert_small_to_big(int new_size) {
         if (will_grow && new_size == MAX) {
-            new (&big)copy_vector<T>(std::begin(small), std::end(small) - 1);
+            copy_vector<T> temp(std::begin(small), std::end(small) - 1);
             clear_small(size);
+            // noexcept
+            new (&big)copy_vector<T>(temp);
             will_grow = false;
         }
         size = new_size;
     }
 
+    // takes empty vector small!
     void take_small(small_object_vector<T> const& other) {
         size_t position = 0;
         try {
@@ -149,7 +147,6 @@ private:
                 new(small + position)T(other.small[position]);
                 position++;
             }
-            clear_small(size);
         } catch (...) {
             clear_small(position);
             throw;
@@ -159,29 +156,29 @@ private:
     void take_big_give_small(small_object_vector<T> &other) {
         copy_vector<T> current(other.big);
         other.big.~copy_vector();
-        other.take_small(*this);
-        clear_small(size);
         try {
-            new(&big)copy_vector<T>(current);
+            other.take_small(*this);
         } catch (...) {
-            take_small(other);
             new(&other.big)copy_vector<T>(current);
+            throw;
         }
+        new(&big)copy_vector<T>(current);
     }
 
 
     friend void swap(small_object_vector<T> &first, small_object_vector<T> &second) {
+        using std::swap;
         if (first.will_grow && second.will_grow) {
-            std::swap(first.small, second.small);
+            swap(first.small, second.small);
         } else if (!first.will_grow && !second.will_grow) {
-            std::swap(first.big, second.big);
+            swap(first.big, second.big);
         } else if (first.will_grow) {
             first.take_big_give_small(second);
         } else {
             second.take_big_give_small(first);
         }
-        std::swap(first.size, second.size);
-        std::swap(first.will_grow, second.will_grow);
+        swap(first.size, second.size);
+        swap(first.will_grow, second.will_grow);
     }
 private:
     // vector WILL GROW from small to big

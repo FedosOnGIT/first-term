@@ -137,7 +137,7 @@ private:
     }
 
     void normalise() {
-        size = bits.say_size();
+        size = bits.get_size();
         while (!bits.empty()) {
             if (bits[size - 1] == 0) {
                 bits.pop_back();
