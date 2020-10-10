@@ -16,6 +16,8 @@ struct buffer {
     explicit buffer(std::vector<T> const& change) : root(change), counter(1) {};
 
     buffer(T* begin, T* end) : root(begin, end), counter(1) {};
+
+    buffer(size_t length, const T& element) : root(length, element), counter(1) {};
 };
 
 #endif //BIGINT_BUFFER_H
