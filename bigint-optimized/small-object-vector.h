@@ -9,12 +9,12 @@
 template<typename T>
 struct small_object_vector {
 
-    small_object_vector() : will_grow(true), size(0) {}
+    small_object_vector() : is_small(true), size_(0) {}
 
     small_object_vector(small_object_vector<T> const& other) {
-        size = other.size;
-        will_grow = other.will_grow;
-        if (will_grow) {
+        size_ = other.size_;
+        is_small = other.is_small;
+        if (is_small) {
             take_small(other);
         } else {
             new (&big)copy_vector<T>(other.big);
@@ -22,20 +22,20 @@ struct small_object_vector {
     }
 
     small_object_vector(size_t length, const T& element) {
-        size = length;
-        will_grow = size < MAX;
-        if (will_grow && length <= MAX) {
-            for (size_t i = 0; i < size; i++) {
+        if (length < MAX) {
+            for (size_t i = 0; i < length; i++) {
                 new (small + i)T(element);
             }
         } else {
-            will_grow = false;
+            // noexcept
             new (&big)copy_vector<T>(length, element);
         }
+        size_ = length;
+        is_small = size_ < MAX;
     }
 
     T& operator[](size_t index) {
-        if (will_grow) {
+        if (is_small) {
             return small[index];
         } else {
             return big[index];
@@ -43,79 +43,64 @@ struct small_object_vector {
     }
 
     const T& operator[](size_t index) const {
-        if (will_grow) {
+        if (is_small) {
             return small[index];
         } else {
             return big[index];
         }
     }
 
-    friend bool operator==(small_object_vector<T> const& first, small_object_vector<T> const& second) {
-        if (first.size != second.size) {
-            return false;
-        }
-        for (size_t i = 0; i < first.size; i++) {
-            if (first[i] != second[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    friend bool operator!=(small_object_vector<T> const& first, small_object_vector<T> const& second) {
-        return !(first == second);
-    }
-
     small_object_vector<T>& operator=(small_object_vector<T> const& other) {
-        will_grow = other.will_grow;
         if (this != &other) {
-            size = other.size;
-            if (other.will_grow) {
+            if (other.is_small) {
                 take_small(other);
             } else {
                 new(&big)copy_vector<T>(other.big);
             }
+            is_small = other.is_small;
+            size_ = other.size_;
         }
         return *this;
     }
 
     ~small_object_vector<T>() {
-        if (will_grow) {
-            clear_small(size);
+        if (is_small) {
+            clear_small(size_);
         } else {
             big.~copy_vector();
         }
     }
 
     void push_back(T const& element) {
-        convert_small_to_big(size + 1);
-        if (will_grow) {
-            new (small + size - 1)T(element);
+        convert_small_to_big(size_ + 1);
+        if (is_small) {
+            new (small + size_)T(element);
         } else {
             big.push_back(element);
         }
+        size_++;
     }
 
     void pop_back() {
-        size--;
-        if (will_grow) {
-            small[size].~T();
+        size_--;
+        if (is_small) {
+            small[size_].~T();
         } else {
             big.pop_back();
         }
     }
 
-    size_t get_size() {
-        return size;
+    size_t size() const {
+        return size_;
     }
 
-    bool empty() {
-        return size == 0;
+    bool empty() const {
+        return size_ == 0;
     }
 
     void reverse() {
-        if (will_grow) {
-            std::reverse(small, small + size);
+        if (is_small) {
+            std::reverse(small, small + size_);
         } else {
             big.reverse();
         }
@@ -129,23 +114,21 @@ private:
     }
 
     void convert_small_to_big(int new_size) {
-        if (will_grow && new_size == MAX) {
+        if (is_small && new_size == MAX) {
             copy_vector<T> temp(std::begin(small), std::end(small) - 1);
-            clear_small(size);
+            clear_small(size_);
             // noexcept
             new (&big)copy_vector<T>(temp);
-            will_grow = false;
+            is_small = false;
         }
-        size = new_size;
     }
 
     // takes empty vector small!
     void take_small(small_object_vector<T> const& other) {
         size_t position = 0;
         try {
-            while (position < other.size) {
+            for (; position<other.size(); position++) {
                 new(small + position)T(other.small[position]);
-                position++;
             }
         } catch (...) {
             clear_small(position);
@@ -168,22 +151,22 @@ private:
 
     friend void swap(small_object_vector<T> &first, small_object_vector<T> &second) {
         using std::swap;
-        if (first.will_grow && second.will_grow) {
+        if (first.is_small && second.is_small) {
             swap(first.small, second.small);
-        } else if (!first.will_grow && !second.will_grow) {
+        } else if (!first.is_small && !second.is_small) {
             swap(first.big, second.big);
-        } else if (first.will_grow) {
+        } else if (first.is_small) {
             first.take_big_give_small(second);
         } else {
             second.take_big_give_small(first);
         }
-        swap(first.size, second.size);
-        swap(first.will_grow, second.will_grow);
+        swap(first.size_, second.size_);
+        swap(first.is_small, second.is_small);
     }
 private:
     // vector WILL GROW from small to big
-    bool will_grow;
-    size_t size;
+    bool is_small;
+    size_t size_;
     static constexpr size_t MAX = 5;
     union {
         copy_vector<T> big;
@@ -191,4 +174,21 @@ private:
     };
 };
 
+template<typename T>
+bool operator==(small_object_vector<T> const& first, small_object_vector<T> const& second) {
+    if (first.size() != second.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < first.size_; i++) {
+        if (first[i] != second[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template<typename T>
+bool operator!=(small_object_vector<T> const& first, small_object_vector<T> const& second) {
+    return !(first == second);
+}
 #endif //BIGINT_SMALL_OBJECT_VECTOR_H
