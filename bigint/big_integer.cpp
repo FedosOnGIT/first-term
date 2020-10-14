@@ -8,8 +8,7 @@
 // ======================================================== initialisation ======================================================
 
 const uint32_t SMALL_BITS = 0xFFFFFFFF;
-// Вынес, но она подчёркивается!
-const big_integer TEN = 10;
+
 uint32_t remainder(uint64_t result) {
     return result & SMALL_BITS;
 }
@@ -22,14 +21,16 @@ big_integer::big_integer(big_integer const &other) = default;
 
 big_integer::big_integer(int a) : bits(1, std::abs(static_cast<int64_t>(a))) {
     sign = a < 0;
-    size = a == 0 ? 0 : 1;
+    size = a == 0 ?
+            0 : 1;
 }
 
 big_integer::big_integer(std::string const &str) : sign(false) {
     bool minus = str[0] == '-';
     *this = 0;
+
     for (size_t i = minus; i < str.size(); i++) {
-        *this *= TEN;
+        *this *= ten();
         *this += (str[i] - '0');
     }
     sign = minus;
@@ -155,8 +156,8 @@ big_integer operator+(big_integer const &a, big_integer const &b) {
     int carry = 0;
     big_integer answer;
     for (size_t i = 0; i < std::max(a.size, b.size) || carry == 1; i++) {
-        int64_t one = return_value(a, i);
-        int64_t two = return_value(b, i);
+        int64_t one = a.return_value(i);
+        int64_t two = b.return_value(i);
         uint64_t result = one * first + two * second + BASE + carry;
         answer.push_back(remainder(result));
         carry = static_cast<int>(result >> 32u) - 1;
@@ -198,7 +199,7 @@ big_integer operator*(big_integer const &a, big_integer const &b) {
         carry = 0;
         for (size_t j = 0; j < b.size || carry; j++) {
             uint64_t result =
-                    static_cast<uint64_t>(a[i]) * (return_value(b, j)) + carry + answer[i + j];
+                    static_cast<uint64_t>(a[i]) * (b.return_value(j)) + carry + answer[i + j];
             answer[i + j] = (remainder(result));
             carry = result >> 32u;
         }
@@ -212,13 +213,12 @@ big_integer operator*(big_integer const &a, big_integer const &b) {
 // =============================== Division starts here =====================================
 bool smaller(big_integer const &first, big_integer const &second, size_t index) {
     for (size_t i = first.size; i > index; i--) {
-        if (i > index + second.size) {
+        size_t j = i - index;
+        if (j > second.size) {
             if (first[i - 1]) {
                 return false;
             }
-        }
-        else {
-            size_t j = i - index;
+        } else {
             if (first[i - 1] != second[j - 1]) {
                 return first[i - 1] < second[j - 1];
             }
@@ -404,6 +404,8 @@ bool operator>=(big_integer const &a, big_integer const &b) {
 std::string to_string(big_integer const &a) {
     std::string answer;
     big_integer decreased = a;
+    static const big_integer TEN(10);
+
     while (a.size && decreased.bits.back() != 0) {
         big_integer result = decreased % TEN;
         decreased /= TEN;

@@ -114,7 +114,18 @@ struct big_integer {
 
     friend std::ostream &operator<<(std::ostream &s, big_integer const &a);
 
+    uint32_t return_value(size_t index) const {
+        return size > index ? (*this)[index] : 0;
+    }
+
 private:
+
+    big_integer ten() const
+    {
+        static const big_integer RESULT(10);
+        return RESULT;
+    }
+
     using function = std::function<unsigned int(uint32_t , uint32_t)>;
 
     friend big_integer bit_operation(big_integer const &a, big_integer const &b, const big_integer::function &function);
@@ -143,10 +154,6 @@ private:
             sign = false;
             bits.push_back(0);
         }
-    }
-
-    friend uint32_t return_value(big_integer const &a, size_t index) {
-        return a.size > index ? a[index] : 0;
     }
 
     void push_back(uint32_t element) {
@@ -195,6 +202,5 @@ private:
 
     bool sign;
 };
-
 
 #endif // BIG_INTEGER_H
