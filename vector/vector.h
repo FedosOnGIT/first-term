@@ -22,7 +22,7 @@ struct vector {
     vector &operator=(vector const &other) {
         if (this != &other) {
             vector copy(other);
-            swap(*this, copy);
+            (*this).swap(copy);
         }
         return *this;
     }
@@ -183,8 +183,12 @@ struct vector {
         return data_ + begin;
     }
 
-    template<typename K>
-    friend void swap(vector<K> &first, vector<K> &second);
+    void swap(vector<T> &other) {
+        using std::swap;
+        swap(data_, other.data_);
+        swap(size_, other.size_);
+        swap(capacity_, other.capacity_);
+    }
 
 private:
     void real_clear(size_t begin, size_t end) {
@@ -211,9 +215,8 @@ private:
                     position++;
                 }
             } catch (...) {
-                while (position > 0) {
+                for (; position > 0; position--) {
                     new_data[position - 1].~T();
-                    position--;
                 }
                 operator delete(new_data);
                 throw;
@@ -235,14 +238,5 @@ private:
     size_t size_;
     size_t capacity_;
 };
-
-template<typename T>
-// O(1) nothrow
-void swap(vector<T> &first, vector<T> &second) {
-    using std::swap;
-    swap(first.data_, second.data_);
-    swap(first.size_, second.size_);
-    swap(first.capacity_, second.capacity_);
-}
 
 #endif // VECTOR_H
