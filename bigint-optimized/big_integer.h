@@ -73,7 +73,7 @@ struct big_integer {
     friend void swap(big_integer &first, big_integer &second) {
         std::swap(first.size, second.size);
         std::swap(first.sign, second.sign);
-        swap(first.bits, second.bits);
+        first.bits.swap(second.bits);
     }
 
     friend big_integer abs(big_integer const &number);
@@ -198,6 +198,5 @@ private:
 
     small_object_vector<uint32_t> bits;
 };
-
 
 #endif // BIG_INTEGER_H
