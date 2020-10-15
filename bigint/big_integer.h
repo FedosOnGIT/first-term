@@ -120,7 +120,7 @@ struct big_integer {
 
 private:
 
-    big_integer ten() const
+    big_integer const& ten() const
     {
         static const big_integer RESULT(10);
         return RESULT;
