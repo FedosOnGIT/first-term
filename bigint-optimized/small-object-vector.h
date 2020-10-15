@@ -30,6 +30,7 @@ struct small_object_vector {
                 }
             } catch (...) {
                 clear_small(i);
+                throw;
             }
         } else {
             // noexcept
