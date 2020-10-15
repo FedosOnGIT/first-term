@@ -23,8 +23,13 @@ struct small_object_vector {
 
     small_object_vector(size_t length, const T& element) {
         if (length < MAX) {
-            for (size_t i = 0; i < length; i++) {
-                new (small + i)T(element);
+            size_t i = 0;
+            try {
+                for (; i < length; i++) {
+                    new(small + i)T(element);
+                }
+            } catch (...) {
+                clear_small(i);
             }
         } else {
             // noexcept
@@ -52,13 +57,8 @@ struct small_object_vector {
 
     small_object_vector<T>& operator=(small_object_vector<T> const& other) {
         if (this != &other) {
-            if (other.is_small) {
-                take_small(other);
-            } else {
-                new(&big)copy_vector<T>(other.big);
-            }
-            is_small = other.is_small;
-            size_ = other.size_;
+            small_object_vector<T> copy(other);
+            swap(copy);
         }
         return *this;
     }
@@ -106,6 +106,21 @@ struct small_object_vector {
         }
     }
 
+    void swap(small_object_vector<T> &other) {
+        using std::swap;
+        if (is_small && other.is_small) {
+            swap(small, other.small);
+        } else if (!is_small && !other.is_small) {
+            swap(big, other.big);
+        } else if (is_small) {
+            take_big_give_small(other);
+        } else {
+            other.take_big_give_small(*this);
+        }
+        swap(size_, other.size_);
+        swap(is_small, other.is_small);
+    }
+
 private:
     void clear_small(size_t number) {
         for (size_t i = number; i > 0; i--) {
@@ -149,20 +164,6 @@ private:
     }
 
 
-    friend void swap(small_object_vector<T> &first, small_object_vector<T> &second) {
-        using std::swap;
-        if (first.is_small && second.is_small) {
-            swap(first.small, second.small);
-        } else if (!first.is_small && !second.is_small) {
-            swap(first.big, second.big);
-        } else if (first.is_small) {
-            first.take_big_give_small(second);
-        } else {
-            second.take_big_give_small(first);
-        }
-        swap(first.size_, second.size_);
-        swap(first.is_small, second.is_small);
-    }
 private:
     // vector WILL GROW from small to big
     bool is_small;
