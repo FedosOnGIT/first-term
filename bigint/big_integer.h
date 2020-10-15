@@ -71,7 +71,6 @@ struct big_integer {
     friend bool operator>=(big_integer const &a, big_integer const &b);
 
     friend void swap(big_integer &first, big_integer &second) {
-        std::swap(first.size, second.size);
         std::swap(first.sign, second.sign);
         first.bits.swap(second.bits);
     }
@@ -115,18 +114,16 @@ struct big_integer {
     friend std::ostream &operator<<(std::ostream &s, big_integer const &a);
 
     uint32_t return_value(size_t index) const {
-        return size > index ? (*this)[index] : 0;
+        return size() > index ? (*this)[index] : 0;
+    }
+
+    bool check_zero(big_integer const& other) const {
+        return (size() <= 1 && other.size() <= 1 && (*this)[0] == other[0] && (*this)[0] == 0);
     }
 
 private:
 
-    big_integer const& ten() const
-    {
-        static const big_integer RESULT(10);
-        return RESULT;
-    }
-
-    using function = std::function<unsigned int(uint32_t , uint32_t)>;
+    using function = std::function<unsigned int(uint32_t, uint32_t)>;
 
     friend big_integer bit_operation(big_integer const &a, big_integer const &b, const big_integer::function &function);
 
@@ -136,33 +133,26 @@ private:
         return bits[index];
     }
 
-    unsigned int const &operator[](size_t index) const {
+    unsigned int operator[](size_t index) const {
+        if (index >= size()) {
+            uint32_t null = 0;
+            return null;
+        }
         return bits[index];
     }
 
     void normalise() {
-        size = bits.size();
-        while (!bits.empty()) {
+        while (size() > 1) {
             if (bits.back() == 0) {
                 bits.pop_back();
-                size--;
             } else {
                 break;
             }
         }
-        if (bits.empty()) {
-            sign = false;
-            bits.push_back(0);
-        }
     }
 
     void push_back(uint32_t element) {
-        if (!size) {
-            bits[0] = element;
-        } else {
-            bits.push_back(element);
-        }
-        size++;
+        bits.push_back(element);
     }
 
     friend bool smaller(big_integer const &first, big_integer const &second, size_t index);
@@ -178,7 +168,7 @@ private:
     friend big_integer additional(big_integer const &a) {
         if (a.sign) {
             big_integer change;
-            for (size_t i = 0; i < a.size; i++) {
+            for (size_t i = 0; i < a.size(); i++) {
                 change.push_back(~a[i]);
             }
             change++;
@@ -191,14 +181,15 @@ private:
 
     void allocate(size_t new_size) {
         bits = std::vector<uint32_t>(new_size, 0);
-        size = new_size;
         sign = false;
+    }
+
+    size_t size() const{
+        return bits.size();
     }
 
 private:
     std::vector<uint32_t> bits;
-
-    size_t size;
 
     bool sign;
 };
