@@ -18,7 +18,6 @@ TEST(correctness, two_plus_two) {
 TEST(correctness, default_ctor) {
     big_integer a;
     big_integer b = 0;
-    0 == a;
     EXPECT_EQ(0, a);
     EXPECT_EQ(b, a);
 }
