@@ -30,6 +30,9 @@ big_integer::big_integer(std::string const &str) : sign(false) {
     *this = 0;
 
     for (size_t i = minus; i < str.size(); i++) {
+        if (!std::isdigit(str[i])) {
+            throw;
+        }
         *this *= ten();
         *this += (str[i] - '0');
     }
@@ -212,16 +215,14 @@ big_integer operator*(big_integer const &a, big_integer const &b) {
 
 // =============================== Division starts here =====================================
 bool smaller(big_integer const &first, big_integer const &second, size_t index) {
-    for (size_t i = first.size; i > index; i--) {
-        size_t j = i - index;
-        if (j > second.size) {
-            if (first[i - 1]) {
-                return false;
-            }
-        } else {
-            if (first[i - 1] != second[j - 1]) {
-                return first[i - 1] < second[j - 1];
-            }
+    auto it = std::find_if(first.bits.begin() + second.size + index, first.bits.begin() + first.size, [](uint32_t t){ return t != 0; });
+    if (it != first.bits.end()) {
+        return false;
+    }
+    for (size_t i = second.size; i > 0; i--) {
+        size_t j = i + index;
+        if (first[j - 1] != second[i - 1]) {
+            return first[j - 1] < second[i - 1];
         }
     }
     return false;
