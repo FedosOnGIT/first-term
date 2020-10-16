@@ -116,11 +116,6 @@ struct big_integer {
     uint32_t return_value(size_t index) const {
         return size() > index ? (*this)[index] : 0;
     }
-
-    bool check_zero(big_integer const& other) const {
-        return (size() <= 1 && other.size() <= 1 && (*this)[0] == other[0] && (*this)[0] == 0);
-    }
-
 private:
 
     using function = std::function<unsigned int(uint32_t, uint32_t)>;
@@ -142,12 +137,15 @@ private:
     }
 
     void normalise() {
-        while (size() > 1) {
+        while (size() > 0) {
             if (bits.back() == 0) {
                 bits.pop_back();
             } else {
                 break;
             }
+        }
+        if (size() == 0) {
+            sign = false;
         }
     }
 
