@@ -27,6 +27,7 @@ big_integer::big_integer(big_integer const &other) = default;
 
 big_integer::big_integer(int a) : bits(1, std::abs(static_cast<int64_t>(a))) {
     sign = a < 0;
+    normalise();
 }
 
 big_integer::big_integer(std::string const &str) : big_integer() {
@@ -113,7 +114,7 @@ big_integer big_integer::operator+() const {
 }
 
 big_integer big_integer::operator-() const {
-    if (size() <= 1 && !(*this)[0]) {
+    if (size() == 0) {
         return *this;
     }
     big_integer copy = *this;
@@ -361,9 +362,6 @@ big_integer operator>>(big_integer const &a, int b) {
 
 
 bool operator==(big_integer const &a, big_integer const &b) {
-    if (a.check_zero(b)) {
-        return true;
-    }
     if (a.size() != b.size() || a.sign != b.sign) {
         return false;
     }
@@ -380,9 +378,6 @@ bool operator!=(big_integer const &a, big_integer const &b) {
 }
 
 bool operator<(big_integer const &a, big_integer const &b) {
-    if (a.check_zero(b)) {
-        return false;
-    }
     if (a.sign != b.sign) {
         return a.sign > b.sign;
     }
@@ -413,10 +408,11 @@ std::string to_string(big_integer const &a) {
     std::string answer;
     big_integer decreased = a;
 
-    while (a.size() && decreased.bits.back() != 0) {
-        big_integer result = decreased % ten();
+    while (decreased.size()) {
+        big_integer const result = decreased % ten();
         decreased /= ten();
-        answer.push_back(result[0] + '0');
+        uint32_t number = result[0];
+        answer.push_back(number + '0');
     }
     if (answer.empty()) {
         return "0";
